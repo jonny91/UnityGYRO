@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
-
-internal class TransformOrginalPosition
-{
-    public Transform Transform;
-    public Vector3 OrginalPosition;
-}
 
 public class GyroUtil : MonoBehaviour
 {
@@ -15,11 +10,13 @@ public class GyroUtil : MonoBehaviour
     [SerializeField] private Transform[] _top;
     [SerializeField] private Text _logText;
 
-    private float _range = 1f;
+    private List<TransformOriginalPosition> _positions;
 
-    private List<TransformOrginalPosition> _positions;
+    private const float FactorY = 1.5f;
+    private const float FactorX = 1f;
 
-    private const float LowPassFilterFactor = 5f;
+    private const float BackGroundMoveRange = 0.2f;
+    private const float BackGroundMoveTime = 6f;
 
     private void Awake()
     {
@@ -37,11 +34,11 @@ public class GyroUtil : MonoBehaviour
         Vector3 acceleration = Input.gyro.userAcceleration;
 
 
-        _positions = new List<TransformOrginalPosition>();
+        _positions = new List<TransformOriginalPosition>();
         foreach (var t in _top)
         {
-            var p = new TransformOrginalPosition {Transform = t};
-            p.OrginalPosition = p.Transform.localPosition;
+            var p = new TransformOriginalPosition {Transform = t};
+            p.OriginalPosition = p.Transform.localPosition;
 
             _positions.Add(p);
         }
@@ -51,65 +48,53 @@ public class GyroUtil : MonoBehaviour
     {
         if (SystemInfo.supportsGyroscope && Input.gyro.attitude != Quaternion.identity)
         {
-//            _rotationTransform.rotation =
-//                Quaternion.Slerp(_rotationTransform.rotation, Input.gyro.attitude,
-//                    LowPassFilterFactor * Time.deltaTime);
+            var attitudeRight = Input.gyro.attitude;
+            var attitudeLeft = new Quaternion(-attitudeRight.x, -attitudeRight.y, attitudeRight.z, attitudeRight.w);
+            var eulerAngles = attitudeLeft.eulerAngles;
+            _logText.text = string.Format("EulerAngles x={0}\ny={1}\nz={2}\n",
+                eulerAngles.x,
+                eulerAngles.y,
+                eulerAngles.z);
 
-            _logText.text = string.Format("Input.gyro.rotationRate\nx:{0}\ny:{1}\nz:{2}",
-                Input.gyro.rotationRate.x,
-                Input.gyro.rotationRate.y,
-                Input.gyro.rotationRate.z);
-
-            var xSpeed = Input.gyro.rotationRate.x;
-            var ySpeed = Input.gyro.rotationRate.y;
-
-            foreach (var p in _positions)
+            float rad = 0f;
+            for (int index = 0; index < _positions.Count; index++)
             {
-                if (Mathf.Abs(xSpeed) > 0.1f)
+                var p = _positions[index];
+                //纵向 往上 0-20
+                if (eulerAngles.y > 0 && eulerAngles.y <= 20)
                 {
-                    p.Transform.localPosition = new Vector3(
-                        p.OrginalPosition.x,
-                        Mathf.Lerp(p.Transform.localPosition.y,
-                            Mathf.Clamp(
-                                p.OrginalPosition.y + xSpeed * LowPassFilterFactor * Time.deltaTime,
-                                p.OrginalPosition.y - _range,
-                                p.OrginalPosition.y + _range
-                            ), 0.1f),
-                        p.OrginalPosition.z);
+                    rad = eulerAngles.y * Mathf.Deg2Rad;
+                    p.Transform.DOLocalMoveY(p.OriginalPosition.y + rad * FactorY * (1 + index * 0.2f), 1f)
+                        .SetEase(Ease.OutBack)
+                        .SetAutoKill(true);
+
+                    _rotationTransform.DOLocalMoveY(-BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
                 }
-                else
+                else if (eulerAngles.y >= 340 && eulerAngles.y < 360) //往下 360-340
                 {
-                    //缓动到初始位置
-                    p.Transform.localPosition =
-                        Vector3.Lerp(p.Transform.localPosition, new Vector3(
-                            p.Transform.localPosition.x,
-                            p.OrginalPosition.y,
-                            p.Transform.localPosition.z
-                        ), 0.1f);
+                    rad = eulerAngles.y * Mathf.Deg2Rad - 2 * Mathf.PI;
+                    p.Transform.DOLocalMoveY(p.OriginalPosition.y + rad * FactorY * (1 + index * 0.2f), 1f)
+                        .SetEase(Ease.OutBack)
+                        .SetAutoKill(true);
+
+                    _rotationTransform.DOLocalMoveY(BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
                 }
 
 
-                if (Mathf.Abs(ySpeed) > 0.1f)
+                //横向 往左边 360-340
+                if (eulerAngles.x >= 340 && eulerAngles.x < 360)
                 {
-                    p.Transform.localPosition = new Vector3(
-                        Mathf.Lerp(p.Transform.localPosition.x,
-                            Mathf.Clamp(
-                                p.OrginalPosition.x + ySpeed * LowPassFilterFactor * Time.deltaTime,
-                                p.OrginalPosition.x - _range,
-                                p.OrginalPosition.x + _range
-                            ), 0.1f),
-                        p.OrginalPosition.y,
-                        p.OrginalPosition.z);
+                    rad = eulerAngles.x * Mathf.Deg2Rad - 2 * Mathf.PI;
+                    p.Transform.DOLocalMoveX(p.OriginalPosition.x + rad * FactorX, 1f).SetAutoKill(true);
+
+                    _rotationTransform.DOLocalMoveX(BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
                 }
-                else
+                else if (eulerAngles.x > 0 && eulerAngles.x <= 20) //往右边 0-20
                 {
-                    //缓动到初始位置
-                    p.Transform.localPosition =
-                        Vector3.Lerp(p.Transform.localPosition, new Vector3(
-                            p.OrginalPosition.x,
-                            p.Transform.localPosition.y,
-                            p.Transform.localPosition.z
-                        ), 0.1f);
+                    rad = eulerAngles.x * Mathf.Deg2Rad;
+                    p.Transform.DOLocalMoveX(p.OriginalPosition.x + rad * FactorX, 1f).SetAutoKill(true);
+
+                    _rotationTransform.DOLocalMoveX(-BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
                 }
             }
         }
