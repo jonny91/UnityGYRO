@@ -48,16 +48,14 @@ public class GyroUtil : MonoBehaviour
     {
         if (SystemInfo.supportsGyroscope && Input.gyro.attitude != Quaternion.identity)
         {
-            var attitudeRight = Input.gyro.attitude;
-            var attitudeLeft = new Quaternion(-attitudeRight.x, -attitudeRight.y, attitudeRight.z, attitudeRight.w);
-            var eulerAngles = attitudeLeft.eulerAngles;
-            _logText.text = string.Format("EulerAngles x={0}\ny={1}\nz={2}\n",
+            var eulerAngles = Input.gyro.attitude.eulerAngles;
+            _logText.text = string.Format("x={0}\ny={1}\nz={2}\n",
                 eulerAngles.x,
                 eulerAngles.y,
                 eulerAngles.z);
 
             float rad = 0f;
-            for (int index = 0; index < _positions.Count; index++)
+            for (var index = 0; index < _positions.Count; index++)
             {
                 var p = _positions[index];
                 //纵向 往上 0-20
@@ -68,7 +66,8 @@ public class GyroUtil : MonoBehaviour
                         .SetEase(Ease.OutBack)
                         .SetAutoKill(true);
 
-                    _rotationTransform.DOLocalMoveY(-BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
+                    _rotationTransform.DOLocalMoveY(-BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack)
+                        .SetAutoKill(true);
                 }
                 else if (eulerAngles.y >= 340 && eulerAngles.y < 360) //往下 360-340
                 {
@@ -77,7 +76,8 @@ public class GyroUtil : MonoBehaviour
                         .SetEase(Ease.OutBack)
                         .SetAutoKill(true);
 
-                    _rotationTransform.DOLocalMoveY(BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
+                    _rotationTransform.DOLocalMoveY(BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack)
+                        .SetAutoKill(true);
                 }
 
 
@@ -87,14 +87,16 @@ public class GyroUtil : MonoBehaviour
                     rad = eulerAngles.x * Mathf.Deg2Rad - 2 * Mathf.PI;
                     p.Transform.DOLocalMoveX(p.OriginalPosition.x + rad * FactorX, 1f).SetAutoKill(true);
 
-                    _rotationTransform.DOLocalMoveX(BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
+                    _rotationTransform.DOLocalMoveX(BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack)
+                        .SetAutoKill(true);
                 }
                 else if (eulerAngles.x > 0 && eulerAngles.x <= 20) //往右边 0-20
                 {
                     rad = eulerAngles.x * Mathf.Deg2Rad;
                     p.Transform.DOLocalMoveX(p.OriginalPosition.x + rad * FactorX, 1f).SetAutoKill(true);
 
-                    _rotationTransform.DOLocalMoveX(-BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack).SetAutoKill(true);
+                    _rotationTransform.DOLocalMoveX(-BackGroundMoveRange, BackGroundMoveTime).SetEase(Ease.OutBack)
+                        .SetAutoKill(true);
                 }
             }
         }
