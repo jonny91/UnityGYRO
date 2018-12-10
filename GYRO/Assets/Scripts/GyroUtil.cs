@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class GyroUtil : MonoBehaviour
 {
     [SerializeField] private Transform _rotationTransform;
-    [SerializeField] private Transform[] _top;
+    [SerializeField] private Transform[] _top;//建筑
     [SerializeField] private Text _logText;
 
     private List<TransformOriginalPosition> _positions;

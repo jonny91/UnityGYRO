@@ -1,7 +1,10 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
-internal class TransformOriginalPosition
+[Serializable]
+public class TransformOriginalPosition
 {
     public Transform Transform;
+    [HideInInspector]
     public Vector3 OriginalPosition;
 }
